@@ -27,9 +27,26 @@ export default function HangmanPage() {
   const [guessedLetters, setGuessedLetters] = useState<Set<string>>(new Set())
   const [wrongGuesses, setWrongGuesses] = useState(0)
   const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing')
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 }) // Default dimensions
+  const [isClient, setIsClient] = useState(false)
 
   const currentQuestion = QUESTIONS[currentQuestionIndex]
   const word = currentQuestion.answer
+
+  useEffect(() => {
+    setIsClient(true)
+    const updateDimensions = () => {
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
+      })
+    }
+    
+    updateDimensions()
+    window.addEventListener('resize', updateDimensions)
+    
+    return () => window.removeEventListener('resize', updateDimensions)
+  }, [])
 
   useEffect(() => {
     if (wrongGuesses >= 6) {
@@ -69,25 +86,33 @@ export default function HangmanPage() {
       className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-800 text-white p-8 relative overflow-hidden"
     >
       {/* Animated background particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 bg-[#BBFF00] rounded-full"
-            animate={{
-              x: [Math.random() * window.innerWidth, Math.random() * window.innerWidth],
-              y: [Math.random() * window.innerHeight, Math.random() * window.innerHeight],
-              opacity: [0.2, 0.8, 0.2],
-              scale: [1, 1.5, 1]
-            }}
-            transition={{
-              duration: Math.random() * 5 + 5,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-          />
-        ))}
-      </div>
+      {isClient && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 bg-[#BBFF00] rounded-full"
+              animate={{
+                x: [
+                  Math.random() * dimensions.width,
+                  Math.random() * dimensions.width
+                ],
+                y: [
+                  Math.random() * dimensions.height,
+                  Math.random() * dimensions.height
+                ],
+                opacity: [0.2, 0.8, 0.2],
+                scale: [1, 1.5, 1]
+              }}
+              transition={{
+                duration: Math.random() * 5 + 5,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Back button */}
       <div className="absolute top-4 left-4 z-10">
@@ -198,38 +223,44 @@ export default function HangmanPage() {
             <AnimatePresence mode="wait">
               {gameStatus !== 'playing' && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  className="text-center bg-blue-800/50 p-8 rounded-xl backdrop-blur-sm"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
                 >
-                  <motion.p 
-                    initial={{ y: -20 }}
-                    animate={{ y: 0 }}
-                    className="text-3xl font-bold mb-6"
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    className="bg-blue-900 p-8 rounded-2xl text-center space-y-6 max-w-md mx-4"
                   >
-                    {gameStatus === 'won' ? '🎉 Congratulations! 🎉' : '😢 Game Over! 😢'}
-                  </motion.p>
-                  <div className="space-x-4">
-                    <motion.button
-                      whileHover={{ scale: 1.05, boxShadow: "0 0 20px #BBFF00" }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => resetGame(false)}
-                      className="px-6 py-3 bg-[#BBFF00] text-black font-bold rounded-lg text-xl"
-                    >
-                      Try Again
-                    </motion.button>
-                    {gameStatus === 'won' && currentQuestionIndex < QUESTIONS.length - 1 && (
+                    <h2 className="text-4xl font-black text-[#BBFF00]">
+                      {gameStatus === 'won' ? 'Congratulations!' : 'Game Over!'}
+                    </h2>
+                    <p className="text-xl">
+                      {gameStatus === 'won'
+                        ? "You've successfully guessed the word!"
+                        : `The word was: ${word}`}
+                    </p>
+                    <div className="flex gap-4 justify-center">
                       <motion.button
-                        whileHover={{ scale: 1.05, boxShadow: "0 0 20px #BBFF00" }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => resetGame(false)}
+                        className="bg-[#BBFF00] text-black px-6 py-3 rounded-full font-bold"
+                      >
+                        Try Again
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => resetGame(true)}
-                        className="px-6 py-3 bg-[#BBFF00] text-black font-bold rounded-lg text-xl"
+                        className="bg-[#BBFF00] text-black px-6 py-3 rounded-full font-bold"
                       >
-                        Next Question
+                        Next Word
                       </motion.button>
-                    )}
-                  </div>
+                    </div>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
